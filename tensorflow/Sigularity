@@ -1,0 +1,31 @@
+Bootstrap: docker
+From: nvidia/cuda:9.2-cudnn7-runtime
+
+%setup
+  mkdir ${SINGULARITY_ROOTFS}/workspace
+  chmod -R a+w ${SINGULARITY_ROOTFS}/workspace
+
+%files
+  benchmark_deep.py /workspace/benchmark_deep.py
+  run.sh /workspace/run.sh
+
+%environment
+  PATH=/opt/conda/bin:$PATH
+  LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+  ngpu=1
+  export PATH LD_LIBRARY_PATH ngpu
+
+%post
+  apt-get update && apt-get install -y --no-install-recommends curl bzip2
+  rm -rf /var/lib/apt/lists/*
+  curl -o ~/miniconda.sh -O https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  chmod +x ~/miniconda.sh
+  ~/miniconda.sh -b -p /opt/conda
+  rm ~/miniconda.sh
+  /opt/conda/bin/conda install python=3.6 numpy pyyaml h5py scipy
+  /opt/conda/bin/conda clean -ya
+  /opt/conda/bin/pip install https://github.com/evdcush/TensorFlow-wheels/releases/download/tf-1.10.0-gpu-9.2-tensorrt-mkl/tensorflow-1.10.0-cp36-cp36m-linux_x86_64.whl
+  rm -rf /root/.cache
+
+%runscript
+  /workspace/run.sh
