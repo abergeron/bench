@@ -1,0 +1,46 @@
+Bootstrap: docker
+From: ibmcom/powerai:1.5.3-all-ubuntu16.04-py3
+
+%setup
+  mkdir ${SINGULARITY_ROOTFS}/workspace
+  chmod -R a+w ${SINGULARITY_ROOTFS}/workspace
+
+%files
+  ../pytorch/main.py /workspace/main.py
+  ../pytorch/run.sh /workspace/pytorch-run.sh
+  ../tensorflow/benchmark_deep.py /workspace/benchmark-deep.py
+  ../tensorflow/run.sh /workspace/tensorflow-run.sh
+  setup.sh /workspace/setup.sh
+
+%environement
+  PATH=/opt/conda/bin:$PATH
+  LICENSE=yes
+
+%post
+  apt-get update && apt-get install -y --no-install-recommends curl bzip2
+
+  curl -o ~/miniconda.sh -O https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-ppc64le.sh
+  chmod +x ~/miniconda.sh
+  ~/miniconda.sh -b -p /opt/conda
+  rm ~/miniconda.sh
+
+  PATH=/opt/conda/bin:$PATH
+  conda install python=3.6
+
+  bash /workspace/setup.sh
+
+  rm /workspace/setup.sh
+  conda clean -ya --all
+  rm -rf /var/lib/apt/lists/*
+  rm -rf /root/.cache
+
+
+%apprun pytorch
+  /opt/DL/license/bin/accept-powerai-license.sh
+  . /opt/DL/pytorch/bin/pytorch-activate
+  /workspace/pytorch-run.sh
+
+%apprun tensorflow
+  /opt/DL/license/bin/accept-powerai-license.sh
+  . /opt/DL/tensorflow/bin/tensorflow-activate
+  /workspace/tensorflow-run.sh
